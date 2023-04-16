@@ -1,0 +1,40 @@
+name: portable-release-actions-workflow
+on:
+  push:
+    # Sequence of patterns matched against refs/tags
+    tags:
+      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+      - 'c*' # Push events to matching v*, i.e. v1.0, v20.15.10
+      
+jobs:
+  build:
+    name: Create Release
+    runs-on: windows-latest
+    env:
+      targetZip: xmind-portable-${{ github.ref_name }}.zip
+    steps:
+      - name: installer
+        shell: bash
+        run: |
+          curl -L --output installer.exe 'https://dl3.xmind.net/Xmind-for-Windows-x64bit-22.11.3656.exe'
+          
+      - name: uncompress 
+        shell: cmd
+        run: |
+          7z.exe x installer.exe &&^
+          cd $PLUGINSDIR &&^
+          7z.exe x app-64.7z -o"C:\installation"
+          
+      - name: Archive Release
+        uses: thedoctor0/zip-release@master
+        with:
+          type: 'zip'
+          directory: "C:/installation"
+          filename: "${{ env.targetZip }}"
+          
+      - name: Release prebuilt
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "C:/installation/${{ env.targetZip }}"
+          allowUpdates: true
+          token: ${{ secrets.GITHUB_TOKEN }}
